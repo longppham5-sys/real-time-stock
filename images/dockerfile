@@ -1,0 +1,5 @@
+FROM python:3.11.15-alpine3.22
+WORKDIR /app
+RUN pip install websocket-client kafka-python
+COPY fetch_data.py .
+CMD ["python", "fetch_data.py"]

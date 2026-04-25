@@ -1,0 +1,36 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-pi
+  namespace: default
+spec:
+  type: Python
+  mode: cluster
+  image: docker.io/library/spark:3.5.0
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor.py
+  sparkVersion: "3.5.0"
+  arguments: []
+  sparkConf:
+    "spark.jars.packages": "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.mongodb.spark:mongo-spark-connector_2.12:10.3.0"
+    "spark.sql.streaming.checkpointLocation": "hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/checkpoints/"
+    "spark.driver.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
+    "spark.executor.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
+    "spark.jars.ivy": "/tmp/.ivy"
+  hadoopConf:
+    "fs.defaultFS": "hdfs://my-hadoop-hadoop-hdfs-nn:9000"
+    "dfs.client.use.datanode.hostname": "true"
+  driver:
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    cores: 1
+  memory: "512m"
+  serviceAccount: spark-operater-spark-operator-spark
+  executor:
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    instances: 1
+    cores: 1
+    memory: "512m"

@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fetch-data
+  labels:
+    app: fetch-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fetch-data
+  template:
+    metadata:
+      labels:
+        app: fetch-data
+    spec:
+      containers:
+      - name: fetch-data
+        image: longppham5/fetch-data:v1.0.2
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "500Mi"
+            cpu: "500m"
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+      restartPolicy: Always

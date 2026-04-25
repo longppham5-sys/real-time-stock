@@ -1,0 +1,19 @@
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: tempmail-user-secrets
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   secretStoreRef:
+#     name: vault-{{ .Release.Namespace }}-store
+#     kind: SecretStore
+#   refreshInterval: "60s"
+#   data:
+#     - secretKey: MONGO_USERNAME
+#       remoteRef:
+#         key: secret/dev/database/tempmail-user
+#         property: MONGO_USERNAME
+#     - secretKey: MONGO_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/tempmail-user
+#         property: MONGO_PASSWORD

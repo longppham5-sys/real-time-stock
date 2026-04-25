@@ -1,0 +1,327 @@
+---
+# Source: database/charts/cluster/templates/cluster-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secrets
+  namespace: default
+  labels:
+    app.kubernetes.io/name: cluster
+    helm.sh/chart: cluster-1.20.1
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.20.1"
+    app.kubernetes.io/managed-by: Helm
+type: Opaque
+stringData:
+  MONGODB_BACKUP_PASSWORD: backup123456
+  MONGODB_BACKUP_USER: backup
+  MONGODB_CLUSTER_ADMIN_PASSWORD: clusterAdmin123456
+  MONGODB_CLUSTER_ADMIN_USER: clusterAdmin
+  MONGODB_CLUSTER_MONITOR_PASSWORD: clusterMonitor123456
+  MONGODB_CLUSTER_MONITOR_USER: clusterMonitor
+  MONGODB_DATABASE_ADMIN_PASSWORD: databaseAdmin123456
+  MONGODB_DATABASE_ADMIN_USER: databaseAdmin
+  MONGODB_USER_ADMIN_PASSWORD: userAdmin123456
+  MONGODB_USER_ADMIN_USER: userAdmin
+  PMM_SERVER_API_KEY: apikey
+  PMM_SERVER_PASSWORD: admin
+  PMM_SERVER_USER: admin
+---
+# Source: database/templates/connection-config.yaml
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: mongodb-connection-config
+#   namespace: default
+# data:
+#   MONGO_HOST: "mongodb-rs0.default.svc.cluster.local"
+#   MONGO_REPLICASET: "rs0"
+#   MONGO_PORT: "27017"
+#   MONGO_DATABASE: "tempmail"
+#   MONGO_TLS_CA_PATH: "/etc/ssl/certs/ca.crt"
+#   MONGO_TLS_CLIENT_CERT_PATH: "/output-pem/tls.pem"
+---
+# Source: database/templates/secret-auth.yaml
+# apiVersion: v1
+# kind: Secret
+# metadata:
+#   name: database-default-secrets-auth
+#   namespace: default
+# data:
+#   external-secrets-token: aHZzLkNBRVNJSGJVMkdPQk0ybzlRZ3NzcV9pU1RIX3Qtc3VYYzlzRnR5VVFqVTlfY19XMEdoNEtIR2gyY3k1SWFHOW9lVFJPTTJNM1IxWjZhakpWTkdWS2NEQndPRU0=
+# type: Opaque
+---
+# Source: database/templates/secret-store.yaml
+# apiVersion: external-secrets.io/v1
+# kind: SecretStore
+# metadata:
+#   name: vault-default-store
+#   namespace: default
+# spec:
+#   provider:
+#     vault:
+#       server: "https://vault.vault.svc:8200"
+#       path: "secret"
+#       version: "v2"
+#       caProvider:
+#         type: "Secret"
+#         namespace: "external-secrets"
+#         name: "vault-tls"
+#         key: "ca.crt"
+#       auth:
+#         tokenSecretRef:
+#           name: "database-default-secrets-auth"
+#           key: "external-secrets-token"
+---
+# Source: database/templates/system-user.yaml
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: system-user-secrets
+#   namespace: default
+# spec:
+#   secretStoreRef:
+#     name: vault-default-store
+#     kind: SecretStore
+#   refreshInterval: "60s"
+#   data:
+#     - secretKey: MONGODB_BACKUP_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_BACKUP_USER
+#     - secretKey: MONGODB_BACKUP_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_BACKUP_PASSWORD
+#     - secretKey: MONGODB_DATABASE_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_DATABASE_ADMIN_USER
+#     - secretKey: MONGODB_DATABASE_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_DATABASE_ADMIN_PASSWORD  
+#     - secretKey: MONGODB_CLUSTER_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_ADMIN_USER
+#     - secretKey: MONGODB_CLUSTER_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_ADMIN_PASSWORD
+#     - secretKey: MONGODB_CLUSTER_MONITOR_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_MONITOR_USER
+#     - secretKey: MONGODB_CLUSTER_MONITOR_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_MONITOR_PASSWORD
+#     - secretKey: MONGODB_USER_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_USER_ADMIN_USER
+#     - secretKey: MONGODB_USER_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_USER_ADMIN_PASSWORD
+---
+# Source: database/templates/tempmail-user.yaml
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: tempmail-user-secrets
+#   namespace: default
+# spec:
+#   secretStoreRef:
+#     name: vault-default-store
+#     kind: SecretStore
+#   refreshInterval: "60s"
+#   data:
+#     - secretKey: MONGO_USERNAME
+#       remoteRef:
+#         key: secret/dev/database/tempmail-user
+#         property: MONGO_USERNAME
+#     - secretKey: MONGO_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/tempmail-user
+#         property: MONGO_PASSWORD
+---
+# Source: database/charts/cluster/templates/cluster.yaml
+apiVersion: psmdb.percona.com/v1
+kind: PerconaServerMongoDB
+metadata:
+  name: mongodb
+  namespace: default
+  labels:
+    app.kubernetes.io/name: cluster
+    helm.sh/chart: cluster-1.20.1
+    app.kubernetes.io/instance: release-name
+    app.kubernetes.io/version: "1.20.1"
+    app.kubernetes.io/managed-by: Helm
+  finalizers:
+    - percona.com/delete-psmdb-pods-in-order
+spec:
+  crVersion: 1.20.1
+  pause: false
+  unmanaged: false
+  enableVolumeExpansion: false
+  image: "percona/percona-server-mongodb:7.0.18-11"
+  imagePullPolicy: "Always"
+  unsafeFlags:
+    backupIfUnhealthy: false
+    mongosSize: false
+    replsetSize: true
+    terminationGracePeriod: false
+    tls: true
+  multiCluster:
+    enabled: false
+  tls:
+    allowInvalidCertificates: false
+    certValidityDuration: 2160h
+    issuerConf:
+      group: cert-manager.io
+      kind: ClusterIssuer
+      name: mongo-ca-issuer
+    mode: disabled
+  secrets:
+    users: mongodb-secrets
+  updateStrategy: SmartUpdate
+  upgradeOptions:
+    versionServiceEndpoint: https://check.percona.com
+    apply: disabled
+    schedule: 0 2 * * *
+    setFCV: false
+  pmm:
+    enabled: false
+    image: "percona/pmm-client:2.44.1"
+    serverHost: monitoring-service
+
+  replsets:
+  - name: rs0
+    size: 1
+    affinity:
+      antiAffinityTopologyKey: kubernetes.io/hostname
+    livenessProbe:
+      failureThreshold: 4
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      startupDelaySeconds: 7200
+      timeoutSeconds: 10
+    readinessProbe:
+      failureThreshold: 8
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      successThreshold: 1
+      timeoutSeconds: 5
+    podDisruptionBudget:
+      maxUnavailable: 1
+    expose:
+      enabled: false
+      type: ClusterIP
+    resources:
+      limits:
+        cpu: 500m
+        memory: 0.5G
+      requests:
+        cpu: 300m
+        memory: 300Mi
+    volumeSpec:
+      persistentVolumeClaim:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+        storageClassName: standard
+    nonvoting:
+      enabled: false
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: kubernetes.io/hostname
+      podDisruptionBudget:
+        maxUnavailable: 1
+      resources:
+        limits:
+          cpu: 300m
+          memory: 0.5G
+        requests:
+          cpu: 300m
+          memory: 0.5G
+      volumeSpec:
+        persistentVolumeClaim:
+          resources:
+            requests:
+              storage: 3Gi
+    arbiter:
+      enabled: false
+      size: 1
+      affinity:
+        antiAffinityTopologyKey: kubernetes.io/hostname
+
+  sharding:
+    enabled: false
+    balancer:
+      enabled: true
+
+    configsvrReplSet:
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: kubernetes.io/hostname
+      podDisruptionBudget:
+        maxUnavailable: 1
+      expose:
+        enabled: false
+        type: ClusterIP
+      resources:
+        limits:
+          cpu: 300m
+          memory: 0.5G
+        requests:
+          cpu: 300m
+          memory: 0.5G
+      volumeSpec:
+        persistentVolumeClaim:
+          resources:
+            requests:
+              storage: 3Gi
+
+    mongos:
+      size: 3
+      affinity:
+        antiAffinityTopologyKey: kubernetes.io/hostname
+      podDisruptionBudget:
+        maxUnavailable: 1
+      resources:
+        limits:
+          cpu: 300m
+          memory: 0.5G
+        requests:
+          cpu: 300m
+          memory: 0.5G
+      expose:
+        type: ClusterIP
+
+  backup:
+    enabled: false
+    image: "percona/percona-backup-mongodb:2.9.1"
+    resources:
+      limits:
+        cpu: 300m
+        memory: 1.2G
+      requests:
+        cpu: 300m
+        memory: 1G
+    storages:
+      null
+    volumeMounts:
+      null
+    pitr:
+      enabled: false
+    tasks:
+      - compressionType: gzip
+        enabled: true
+        keep: 3
+        name: daily-s3-ap-southeast-2
+        schedule: 0 8 * * *
+        storageName: s3-backup

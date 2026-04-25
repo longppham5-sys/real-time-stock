@@ -1,0 +1,52 @@
+# apiVersion: external-secrets.io/v1
+# kind: ExternalSecret
+# metadata:
+#   name: system-user-secrets
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   secretStoreRef:
+#     name: vault-{{ .Release.Namespace }}-store
+#     kind: SecretStore
+#   refreshInterval: "60s"
+#   data:
+#     - secretKey: MONGODB_BACKUP_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_BACKUP_USER
+#     - secretKey: MONGODB_BACKUP_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_BACKUP_PASSWORD
+#     - secretKey: MONGODB_DATABASE_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_DATABASE_ADMIN_USER
+#     - secretKey: MONGODB_DATABASE_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_DATABASE_ADMIN_PASSWORD  
+#     - secretKey: MONGODB_CLUSTER_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_ADMIN_USER
+#     - secretKey: MONGODB_CLUSTER_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_ADMIN_PASSWORD
+#     - secretKey: MONGODB_CLUSTER_MONITOR_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_MONITOR_USER
+#     - secretKey: MONGODB_CLUSTER_MONITOR_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_CLUSTER_MONITOR_PASSWORD
+#     - secretKey: MONGODB_USER_ADMIN_USER
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_USER_ADMIN_USER
+#     - secretKey: MONGODB_USER_ADMIN_PASSWORD
+#       remoteRef:
+#         key: secret/dev/database/system-user
+#         property: MONGODB_USER_ADMIN_PASSWORD
+    

@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fetch-data
+  labels:
+    app: fetch-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fetch-data
+  template:
+    metadata:
+      labels:
+        app: fetch-data
+    spec:
+      containers:
+      - name: fetch-data
+        image: longppham5/fetch-data:v1.0.0
+        imagePullPolicy: Always
+        env:
+          - name: KAFKA_BOOTSTRAP_SERVERS
+            value: "my-cluster-kafka-bootstrap:9093"
+          - name: KAFKA_CA_CERT
+            value: "/etc/cluster-ca/ca.crt"
+          - name: KAFKA_USER_CERT
+            value: "/etc/producer-credentials/user.crt"
+          - name: KAFKA_USER_KEY
+            value: "/etc/producer-credentials/user.key"
+        resources:
+          limits:
+            memory: "500Mi"
+            cpu: "500m"
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+        volumeMounts:
+        - name: producer-credentials
+          mountPath: /etc/producer-credentials
+          readOnly: true
+        - name: cluster-ca
+          mountPath: /etc/cluster-ca
+          readOnly: true
+      volumes:
+        - name: producer-credentials
+          secret:
+            secretName: producer-user
+        - name: cluster-ca
+          secret:
+            secretName: my-cluster-cluster-ca-cert
+      restartPolicy: Always

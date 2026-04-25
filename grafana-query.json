@@ -1,0 +1,26 @@
+[
+  { 
+    "$match": { "symbol": "BTCUSDT" } 
+  },
+  { 
+    "$sort": { "event_time": -1 } 
+  },
+  { 
+    "$limit": 500 
+  },
+  {
+    "$project": {
+      "time": "$event_time",
+      "open": "$open",
+      "high": "$high",
+      "low": "$low",
+      "close": "$close",
+      "rsi": "$rsi",
+      "advice": "$advice",
+      "_id": 0
+    }
+  },
+  { 
+    "$sort": { "time": 1 } 
+  }
+]

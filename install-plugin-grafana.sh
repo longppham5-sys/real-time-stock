@@ -1,0 +1,2 @@
+# Install via Grafana CLI
+grafana-cli --pluginUrl https://github.com/haohanyang/mongodb-datasource/releases/download/v0.5.0/haohanyang-mongodb-datasource-0.5.0.zip plugins install haohanyang-mongodb-datasource

@@ -1,0 +1,12 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: crypto-prices       # Đây là tên Topic bạn sẽ điền vào code Python và Spark
+  labels:
+    strimzi.io/cluster: my-cluster # PHẢI khớp với tên 'metadata.name' của cụm Kafka bạn đã tạo         # Phải cùng Namespace với cụm Kafka
+spec:
+  partitions: 3             # Chia làm 3 phần để Spark đọc song song cho nhanh
+  replicas: 1               # Số bản sao (Lab chạy 1 node nên để 1)
+  config:
+    retention.ms: 3600000   # Giữ dữ liệu trong 1 giờ (tránh đầy ổ cứng máy ảo)
+    segment.bytes: 1073741824

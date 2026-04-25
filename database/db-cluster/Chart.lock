@@ -1,0 +1,6 @@
+dependencies:
+- name: psmdb-db
+  repository: https://percona.github.io/percona-helm-charts/
+  version: 1.20.1
+digest: sha256:11ed9258f45bdab93eadef038aaad652ca6894e9158399a67b051025f6408c1f
+generated: "2025-10-17T21:49:19.9804562+08:00"
