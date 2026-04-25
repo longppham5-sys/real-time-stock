@@ -1,7 +1,7 @@
 apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
-  name: spark-pi
+  name: spark-crypto-processor
   namespace: default
 spec:
   type: Python
@@ -10,27 +10,60 @@ spec:
   imagePullPolicy: IfNotPresent
   mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor.py
   sparkVersion: "3.5.0"
-  arguments: []
+  
   sparkConf:
     "spark.jars.packages": "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.mongodb.spark:mongo-spark-connector_2.12:10.3.0"
     "spark.sql.streaming.checkpointLocation": "hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/checkpoints/"
-    "spark.driver.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
-    "spark.executor.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
-    "spark.jars.ivy": "/tmp/.ivy"
+    "spark.executorEnv.KAFKA_CA_CERT": "/etc/cluster-ca/ca.crt"
+    "spark.executorEnv.KAFKA_USER_CERT": "/etc/consumer-credentials/user.crt"
+    "spark.executorEnv.KAFKA_USER_KEY": "/etc/consumer-credentials/user.key"
+    "spark.driver.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp"
+    "spark.executor.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp"
+    "spark.jars.ivy": "/tmp"
+
   hadoopConf:
     "fs.defaultFS": "hdfs://my-hadoop-hadoop-hdfs-nn:9000"
     "dfs.client.use.datanode.hostname": "true"
+
   driver:
-    env:
-      - name: HADOOP_USER_NAME
-        value: "root"
     cores: 1
-  memory: "512m"
-  serviceAccount: spark-operater-spark-operator-spark
-  executor:
+    memory: "512m"
+    serviceAccount: spark-operater-spark-operator-spark
     env:
       - name: HADOOP_USER_NAME
         value: "root"
+      - name: KAFKA_CA_CERT
+        value: "/etc/cluster-ca/ca.crt"
+      - name: KAFKA_USER_CERT
+        value: "/etc/consumer-credentials/user.crt"
+      - name: KAFKA_USER_KEY
+        value: "/etc/consumer-credentials/user.key"
+    volumeMounts:
+      - name: consumer-credentials
+        mountPath: /etc/consumer-credentials
+        readOnly: true
+      - name: cluster-ca
+        mountPath: /etc/cluster-ca
+        readOnly: true
+
+  executor:
     instances: 1
     cores: 1
     memory: "512m"
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    volumeMounts:
+      - name: consumer-credentials
+        mountPath: /etc/consumer-credentials
+        readOnly: true
+      - name: cluster-ca
+        mountPath: /etc/cluster-ca
+        readOnly: true
+  volumes:
+    - name: consumer-credentials
+      secret:
+        secretName: consumer-user
+    - name: cluster-ca
+      secret:
+        secretName: my-cluster-cluster-ca-cert
