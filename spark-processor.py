@@ -24,6 +24,13 @@ schema = StructType() \
     .add("timestamp", LongType())
 
 # 3. Đọc Stream từ Kafka với cấu hình mTLS (CỰC KỲ QUAN TRỌNG)
+def read_file(path):
+    with open(path, "r") as f:
+        return f.read()
+ca_cert = read_file(CA_CERT_PATH)
+user_cert = read_file(USER_CERT_PATH)
+user_key = read_file(USER_KEY_PATH)
+
 raw_df = spark.readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers", "my-cluster-kafka-bootstrap.default.svc:9093") \
@@ -32,10 +39,10 @@ raw_df = spark.readStream \
     .option("failOnDataLoss", "false") \
     .option("kafka.security.protocol", "SSL") \
     .option("kafka.ssl.truststore.type", "PEM") \
-    .option("kafka.ssl.truststore.location", CA_CERT_PATH) \
+    .option("kafka.ssl.truststore.certificates", ca_cert) \
     .option("kafka.ssl.keystore.type", "PEM") \
-    .option("kafka.ssl.keystore.certificate.chain", USER_CERT_PATH) \
-    .option("kafka.ssl.keystore.key", USER_KEY_PATH) \
+    .option("kafka.ssl.keystore.certificate.chain", user_cert) \
+    .option("kafka.ssl.keystore.key", user_key) \
     .load()
 
 # 4. Parse dữ liệu (Giữ nguyên logic của Long)
@@ -82,9 +89,11 @@ MONGO_PASS = "databaseAdmin123456"
 MONGO_HOST = "mongodb-rs0.default.svc.cluster.local"
 MONGO_DB = "crypto"
 MONGO_COLLECTION = "prices_downsampled"
+MONGO_CA_CERT_PATH = "/etc/mongo-certs/ca.crt"
+MONGO_CLIENT_CERT_PATH = "/tmp/certs/mongo.pem"
 
-mongo_uri = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/{MONGO_DB}.{MONGO_COLLECTION}?authSource=admin"
-
+mongo_uri = f"mongodb://{MONGO_USER}:{MONGO_PASS}@{MONGO_HOST}:27017/{MONGO_DB}.{MONGO_COLLECTION}" \
+            f"?authSource=admin&tls=true"
 # 7. Ghi dữ liệu
 query = final_df.writeStream \
     .format("mongodb") \

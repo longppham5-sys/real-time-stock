@@ -1,4 +1,4 @@
-kubectl exec -it mongodb-rs0-0 -- mongosh -u databaseAdmin -p databaseAdmin123456 --authenticationDatabase admin
+kubectl exec -it mongodb-rs0-0 -- mongosh   -u databaseAdmin   -p databaseAdmin123456   --authenticationDatabase admin   --tls   --tlsCAFile //etc/mongodb-ssl/ca.crt   --tlsCertificateKeyFile //tmp/tls.pem   --tlsAllowInvalidHostnames
 
 show dbs
 

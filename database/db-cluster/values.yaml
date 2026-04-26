@@ -28,7 +28,7 @@ cluster:
   pause: false
   unmanaged: false
   unsafeFlags:
-    tls: true
+    tls: false
     replsetSize: true # Change to false when using in production
     mongosSize: false
     terminationGracePeriod: false
@@ -63,7 +63,7 @@ cluster:
   #   tag: 1.20.1
   # initContainerSecurityContext: {}
   tls:
-    mode: disabled
+    mode: requireTLS
     # 90 days in hours
     certValidityDuration: 2160h
     allowInvalidCertificates: false
