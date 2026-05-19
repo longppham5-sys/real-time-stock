@@ -649,9 +649,7 @@ cluster:
       #    type: filesystem
       #    filesystem:
       #      path: /mnt/nfs/
-  #    volumeMounts:
-  #    - mountPath: /mnt/nfs/
-  #      name: backup-nfs
+    volumeMounts: []
     pitr:
       enabled: false
       oplogOnly: false
