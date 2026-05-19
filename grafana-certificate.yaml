@@ -1,0 +1,13 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: grafana-mongodb-client-cert
+  namespace: default
+spec:
+  secretName: grafana-mongodb-client-secret
+  issuerRef:
+    name: mongo-ca-issuer
+    kind: ClusterIssuer
+  commonName: grafana-client
+  usages:
+    - client auth
