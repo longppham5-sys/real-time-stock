@@ -265,7 +265,7 @@ cluster:
           accessModes: [ "ReadWriteOnce" ]
           resources:
             requests:
-              storage: 5Gi
+              storage: 20Gi
       # hostAliases:
       # - ip: "10.10.0.2"
       #   hostnames:
@@ -595,7 +595,7 @@ cluster:
       requests:
         cpu: "300m"
         memory: "1G"
-    storages:
+    storages: {}
       # s3-backup:
       #   main: true
       #   type: s3
