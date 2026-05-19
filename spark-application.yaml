@@ -1,7 +1,7 @@
 apiVersion: sparkoperator.k8s.io/v1beta2
 kind: SparkApplication
 metadata:
-  name: spark-pi
+  name: spark-crypto-processor
   namespace: default
 spec:
   type: Python
@@ -10,27 +10,140 @@ spec:
   imagePullPolicy: IfNotPresent
   mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor.py
   sparkVersion: "3.5.0"
-  arguments: []
+  
   sparkConf:
     "spark.jars.packages": "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.0,org.mongodb.spark:mongo-spark-connector_2.12:10.3.0"
     "spark.sql.streaming.checkpointLocation": "hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/checkpoints/"
-    "spark.driver.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
-    "spark.executor.extraJavaOptions": "-Divy.home=/tmp/.ivy -Dbolt.home=/tmp/.bolt"
-    "spark.jars.ivy": "/tmp/.ivy"
+    "spark.executorEnv.KAFKA_CA_CERT": "/etc/cluster-ca/ca.crt"
+    "spark.executorEnv.KAFKA_USER_CERT": "/etc/consumer-credentials/user.crt"
+    "spark.executorEnv.KAFKA_USER_KEY": "/etc/consumer-credentials/user.key"
+    "spark.jars.ivy": "/tmp"
+    "spark.driver.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp -Djavax.net.ssl.trustStore=/tmp/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.keyStore=/tmp/certs/client-keystore.p12 -Djavax.net.ssl.keyStorePassword=changeit -Djavax.net.ssl.keyStoreType=PKCS12"
+    "spark.executor.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp -Djavax.net.ssl.trustStore=/tmp/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.keyStore=/tmp/certs/client-keystore.p12 -Djavax.net.ssl.keyStorePassword=changeit -Djavax.net.ssl.keyStoreType=PKCS12"  
   hadoopConf:
     "fs.defaultFS": "hdfs://my-hadoop-hadoop-hdfs-nn:9000"
     "dfs.client.use.datanode.hostname": "true"
+
   driver:
-    env:
-      - name: HADOOP_USER_NAME
-        value: "root"
+    initContainers:
+      - name: prepare-certs
+        image: docker.io/library/spark:3.5.0
+        securityContext:    
+          runAsUser: 0
+        command: 
+          - "/bin/sh"
+          - "-c"
+          - |
+            # 1. Đóng gói Cert và Key thành định dạng PKCS12 (.p12) cho Client Auth (MẬT KHẨU LÀ changeit)
+            openssl pkcs12 -export -in /etc/client-certs/tls.crt -inkey /etc/client-certs/tls.key -out /tmp/certs/client-keystore.p12 -name mongo-client -passout pass:changeit
+            
+            # 2. Tạo TrustStore cho Server Auth (Giữ quyền truy cập Internet)
+            if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then
+              cp $JAVA_HOME/lib/security/cacerts /tmp/certs/truststore.jks
+            else
+              cp /etc/ssl/certs/java/cacerts /tmp/certs/truststore.jks
+            fi
+            keytool -import -trustcacerts -keystore /tmp/certs/truststore.jks -storepass changeit -noprompt -alias mongo-ca -file /etc/mongo-certs/ca.crt
+            
+            # 3. Phân quyền
+            chmod -R 777 /tmp/certs
+        volumeMounts:
+          - name: mongo-certs
+            mountPath: /etc/mongo-certs
+            readOnly: true
+          - name: tmp-certs
+            mountPath: /tmp/certs
+          - name: client-certs
+            mountPath: /etc/client-certs
     cores: 1
-  memory: "512m"
-  serviceAccount: spark-operater-spark-operator-spark
-  executor:
+    memory: "512m"
+    serviceAccount: spark-operater-spark-operator-spark
     env:
       - name: HADOOP_USER_NAME
         value: "root"
+      - name: KAFKA_CA_CERT
+        value: "/etc/cluster-ca/ca.crt"
+      - name: KAFKA_USER_CERT
+        value: "/etc/consumer-credentials/user.crt"
+      - name: KAFKA_USER_KEY
+        value: "/etc/consumer-credentials/user.key"
+    volumeMounts:
+      - name: consumer-credentials
+        mountPath: /etc/consumer-credentials
+        readOnly: true
+      - name: cluster-ca
+        mountPath: /etc/cluster-ca
+        readOnly: true
+      - name: mongo-certs
+        mountPath: /etc/mongo-certs
+        readOnly: true
+      - name: client-certs
+        mountPath: /etc/client-certs
+        readOnly: true
+      - name: tmp-certs
+        mountPath: /tmp/certs
+  executor:
     instances: 1
     cores: 1
     memory: "512m"
+    initContainers:
+      - name: prepare-certs
+        image: docker.io/library/spark:3.5.0
+        securityContext:     
+          runAsUser: 0
+        command: 
+          - "/bin/sh"
+          - "-c"
+          - |
+            # 1. Đóng gói Cert và Key thành định dạng PKCS12 (.p12) cho Client Auth (MẬT KHẨU LÀ changeit)
+            openssl pkcs12 -export -in /etc/client-certs/tls.crt -inkey /etc/client-certs/tls.key -out /tmp/certs/client-keystore.p12 -name mongo-client -passout pass:changeit
+            
+            # 2. Tạo TrustStore cho Server Auth (Giữ quyền truy cập Internet)
+            if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then
+              cp $JAVA_HOME/lib/security/cacerts /tmp/certs/truststore.jks
+            else
+              cp /etc/ssl/certs/java/cacerts /tmp/certs/truststore.jks
+            fi
+            keytool -import -trustcacerts -keystore /tmp/certs/truststore.jks -storepass changeit -noprompt -alias mongo-ca -file /etc/mongo-certs/ca.crt
+            
+            # 3. Phân quyền
+            chmod -R 777 /tmp/certs
+        volumeMounts:
+          - name: mongo-certs
+            mountPath: /etc/mongo-certs
+          - name: tmp-certs
+            mountPath: /tmp/certs
+          - name: client-certs
+            mountPath: /etc/client-certs
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    volumeMounts:
+      - name: consumer-credentials
+        mountPath: /etc/consumer-credentials
+        readOnly: true
+      - name: cluster-ca
+        mountPath: /etc/cluster-ca
+        readOnly: true
+      - name: mongo-certs
+        mountPath: /etc/mongo-certs
+        readOnly: true
+      - name: tmp-certs 
+        mountPath: /tmp/certs
+      - name: client-certs
+        mountPath: /etc/client-certs
+  volumes:
+    - name: consumer-credentials
+      secret:
+        secretName: consumer-user
+    - name: cluster-ca
+      secret:
+        secretName: my-cluster-cluster-ca-cert
+    - name: mongo-certs
+      secret:
+        secretName: mongodb-ssl
+    - name: tmp-certs 
+      emptyDir: {}
+    - name: client-certs
+      secret:
+        secretName: spark-mongodb-client-secret

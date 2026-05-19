@@ -2,22 +2,30 @@ import websocket
 import json
 from kafka import KafkaProducer
 import time
+import os  # Thêm thư viện để đọc biến môi trường
 
-# 1. Cấu hình Kafka
-# Lưu ý: Thay đổi địa chỉ này nếu script chạy ngoài cụm K8s
-KAFKA_BOOTSTRAP_SERVERS = 'my-cluster-kafka-bootstrap.default.svc:9092' 
+# 1. Cấu hình Kafka (Lấy từ Environment Variables hoặc dùng default)
+KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'my-cluster-kafka-bootstrap.default.svc:9093')
 TOPIC_NAME = 'crypto-prices'
 
-print("Đang khởi tạo kết nối tới Kafka...")
+# Đường dẫn đến các file Cert (Mount từ Secret vào Pod)
+CA_CERT_PATH = os.getenv('KAFKA_CA_CERT', '/etc/cluster-ca/ca.crt')
+USER_CERT_PATH = os.getenv('KAFKA_USER_CERT', '/etc/producer-credentials/user.crt')
+USER_KEY_PATH = os.getenv('KAFKA_USER_KEY', '/etc/producer-credentials/user.key')
+
+print("Configure mTLS between producer and kafka...")
 try:
     producer = KafkaProducer(
         bootstrap_servers=[KAFKA_BOOTSTRAP_SERVERS],
         value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-        # Tăng tính an toàn khi gửi dữ liệu
+        security_protocol='SSL',
+        ssl_cafile=CA_CERT_PATH,   
+        ssl_certfile=USER_CERT_PATH, 
+        ssl_keyfile=USER_KEY_PATH,   
         acks=1,
         retries=5
     )
-    print("Kết nối Kafka thành công!")
+    print("Kết nối Kafka (SSL/mTLS) thành công!")
 except Exception as e:
     print(f"Lỗi kết nối Kafka: {e}")
     exit(1)
@@ -26,8 +34,8 @@ def on_message(ws, message):
     try:
         data = json.loads(message)
         
-        # Binance gửi dữ liệu trade thô, mình lọc lại các trường cần thiết
-        # p: Price (Giá), q: Quantity (Số lượng), E: Event Time (Thời gian)
+        # Binance gửi dữ liệu trade thô
+        # s: Symbol, p: Price, q: Quantity, E: Event Time
         refined_data = {
             "symbol": data['s'],
             "price": float(data['p']),
@@ -36,7 +44,8 @@ def on_message(ws, message):
         }
         
         # Bắn dữ liệu vào Kafka
-        producer.send(TOPIC_NAME, value=refined_data)
+        # Thêm callback để kiểm tra lỗi gửi
+        producer.send(TOPIC_NAME, value=refined_data).add_errback(lambda e: print(f"Kafka Send Error: {e}"))
         print(f"Sent: {refined_data['symbol']} - {refined_data['price']}")
         
     except Exception as e:

@@ -6,6 +6,7 @@ services:
     container_name: namenode
     ports:
       - "9870:9870"
+      - "8020:8020"
     volumes:
       - ./hdfs/namenode:/hadoop/dfs/name
     environment:
@@ -50,13 +51,18 @@ services:
     ports:
       - "8080:8080"
       - "7077:7077"
+    volumes:
+      - ./spark/processes:/processes
     environment:
       - INIT_DAEMON_STEP=setup_spark
+      - CORE_CONF_fs_defaultFS=hdfs://namenode:8020
   spark-worker:
     image: bde2020/spark-worker:3.3.0-hadoop3.3
     container_name: spark-worker
     depends_on:
       - spark-master
+    volumes:
+      - ./spark/processes:/processes
     ports:
       - "8081:8081"
     environment:

@@ -390,7 +390,21 @@ topologySpreadConstraints: []
 ## Additional init containers (evaluated as template)
 ## ref: https://kubernetes.io/docs/concepts/workloads/pods/init-containers/
 ##
-extraInitContainers: []
+extraInitContainers:
+  - name: pem-generator
+    image: busybox
+    command:
+      - sh
+      - -c
+      - |
+        cat /tmp/grafana/ssl/tls.crt /tmp/grafana/ssl/tls.key > /etc/grafana/ssl/grafana-auth.pem
+        chmod 444 /etc/grafana/ssl/grafana-auth.pem
+    volumeMounts:
+      - name: grafana-certificate
+        mountPath: /tmp/grafana/ssl/
+        readOnly: true
+      - name: cert-storage
+        mountPath: /etc/grafana/ssl/
 
 ## Enable an Specify container in extraContainers. This is meant to allow adding an authentication proxy to a grafana pod
 extraContainers: ""
@@ -591,7 +605,11 @@ enableServiceLinks: true
 
 ## Additional grafana server secret mounts
 # Defines additional mounts with secrets. Secrets must be manually created in the namespace.
-extraSecretMounts: []
+extraSecretMounts:
+  - name: grafana-certificate
+    mountPath: /etc/grafana/raw-certs
+    secretName: grafana-mongodb-client-secret
+    readOnly: true
   # - name: secret-files
   #   mountPath: /etc/secrets
   #   secretName: grafana-secret-files
@@ -625,7 +643,10 @@ extraSecretMounts: []
 
 ## Additional grafana server volume mounts
 # Defines additional volume mounts.
-extraVolumeMounts: []
+extraVolumeMounts:
+  - name: cert-storage
+    mountPath: /etc/grafana/ca/
+    readOnly: true
   # - name: extra-volume-0
   #   mountPath: /mnt/volume0
   #   readOnly: true
@@ -636,7 +657,9 @@ extraVolumeMounts: []
   #   mountPath: /mnt/volume2
 
 ## Additional Grafana server volumes
-extraVolumes: []
+extraVolumes:
+  - name: cert-storage
+    emptyDir: {}
   # - name: extra-volume-0
   #   existingClaim: volume-claim
   # - name: extra-volume-1
