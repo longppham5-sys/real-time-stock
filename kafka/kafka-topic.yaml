@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1beta2
+apiVersion: kafka.strimzi.io/v1
 kind: KafkaTopic
 metadata:
   name: crypto-prices       # Đây là tên Topic bạn sẽ điền vào code Python và Spark
