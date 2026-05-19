@@ -32,7 +32,7 @@ hdfs:
     externalDataPortRangeStart: 50500
     externalHTTPPortRangeStart: 51000
 
-    replicas: 3
+    replicas: 1
 
     pdbMinAvailable: 1
 
@@ -63,7 +63,7 @@ yarn:
     pdbMinAvailable: 1
 
     # The number of YARN NodeManager instances.
-    replicas: 3
+    replicas: 1
 
     # Create statefulsets in parallel (K8S 1.7+)
     parallelCreate: false
