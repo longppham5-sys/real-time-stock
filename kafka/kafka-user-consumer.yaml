@@ -1,4 +1,4 @@
-apiVersion: kafka.strimzi.io/v1
+apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
 metadata:
   name: consumer-user
@@ -10,6 +10,13 @@ spec:
   authorization:
     type: simple
     acls:
+      - resource:
+          type: topic
+          name: crypto-prices
+          patternType: literal
+        operations:
+          - Read
+        host: "*"
       - resource:
           type: group
           name: my-group

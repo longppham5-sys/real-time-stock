@@ -8,7 +8,7 @@ spark = SparkSession.builder \
 
 # Giả sử file dữ liệu của bạn đã được đẩy lên HDFS
 # Bạn có thể thay bằng đường dẫn file CSV thật của bạn
-file_path = "hdfs://my-hadoop-hadoop-hdfs-nn:9000/sales_data.csv"
+file_path = "hdfs://namenode:8020/sales_data.csv"
 
 # 2. Đọc dữ liệu (Lazy)
 # Lưu ý: header=True để lấy dòng đầu làm tên cột, inferSchema=True để tự đoán kiểu số/chữ
