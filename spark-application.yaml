@@ -57,7 +57,7 @@ spec:
             mountPath: /etc/client-certs
     cores: 1
     memory: "512m"
-    serviceAccount: spark-operater-spark-operator-spark
+    serviceAccount: spark-operator-spark
     env:
       - name: HADOOP_USER_NAME
         value: "root"
