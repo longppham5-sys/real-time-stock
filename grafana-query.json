@@ -24,3 +24,85 @@
     "$sort": { "time": 1 } 
   }
 ]
+
+[
+  {
+    "$match": {
+      "symbol": "BTCUSDT",
+      "window_start": { "$exists": true }
+    }
+  },
+  {
+    "$sort": {
+      "window_start": -1
+    }
+  },
+  {
+    "$limit": 500
+  },
+  {
+    "$project": {
+      "_id": 0,
+      "time": "$window_start",
+      "open": 1,
+      "high": 1,
+      "low": 1,
+      "close": 1,
+      "volume": 1,
+      "vwap": 1,
+      "rsi": 1,
+      "advice": 1
+    }
+  },
+  {
+    "$sort": {
+      "time": 1
+    }
+  }
+]
+
+[
+  {
+    "$match": {
+      "symbol": "BTCUSDT",
+      "$or": [
+        { "window_start": { "$exists": true } },
+        { "event_time": { "$exists": true } }
+      ]
+    }
+  },
+  {
+    "$addFields": {
+      "chart_time": {
+        "$ifNull": ["$window_start", "$event_time"]
+      }
+    }
+  },
+  {
+    "$sort": {
+      "chart_time": -1
+    }
+  },
+  {
+    "$limit": 500
+  },
+  {
+    "$project": {
+      "_id": 0,
+      "time": "$chart_time",
+      "open": 1,
+      "high": 1,
+      "low": 1,
+      "close": 1,
+      "volume": 1,
+      "vwap": 1,
+      "rsi": 1,
+      "advice": 1
+    }
+  },
+  {
+    "$sort": {
+      "time": 1
+    }
+  }
+]
