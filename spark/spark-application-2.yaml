@@ -1,0 +1,121 @@
+apiVersion: sparkoperator.k8s.io/v1beta2
+kind: SparkApplication
+metadata:
+  name: spark-rsi-14-processor
+  namespace: default
+spec:
+  type: Python
+  mode: cluster
+  image: docker.io/library/spark:3.5.0
+  imagePullPolicy: IfNotPresent
+  mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor-2.py
+  sparkVersion: "3.5.0"
+  
+  sparkConf:
+    "spark.jars.packages": "org.mongodb.spark:mongo-spark-connector_2.12:10.3.0"
+    "spark.jars.ivy": "/tmp"
+    "spark.driver.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp -Djavax.net.ssl.trustStore=/tmp/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.keyStore=/tmp/certs/client-keystore.p12 -Djavax.net.ssl.keyStorePassword=changeit -Djavax.net.ssl.keyStoreType=PKCS12"
+    "spark.executor.extraJavaOptions": "-Divy.home=/tmp -Dbolt.home=/tmp -Djavax.net.ssl.trustStore=/tmp/certs/truststore.jks -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.keyStore=/tmp/certs/client-keystore.p12 -Djavax.net.ssl.keyStorePassword=changeit -Djavax.net.ssl.keyStoreType=PKCS12"  
+  hadoopConf:
+    "fs.defaultFS": "hdfs://my-hadoop-hadoop-hdfs-nn:9000"
+    "dfs.client.use.datanode.hostname": "true"
+
+  driver:
+    initContainers:
+      - name: prepare-certs
+        image: docker.io/library/spark:3.5.0
+        securityContext:    
+          runAsUser: 0
+        command: 
+          - "/bin/sh"
+          - "-c"
+          - |
+            # 1. Đóng gói Cert và Key thành định dạng PKCS12 (.p12) cho Client Auth (MẬT KHẨU LÀ changeit)
+            openssl pkcs12 -export -in /etc/client-certs/tls.crt -inkey /etc/client-certs/tls.key -out /tmp/certs/client-keystore.p12 -name mongo-client -passout pass:changeit
+            
+            # 2. Tạo TrustStore cho Server Auth (Giữ quyền truy cập Internet)
+            if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then
+              cp $JAVA_HOME/lib/security/cacerts /tmp/certs/truststore.jks
+            else
+              cp /etc/ssl/certs/java/cacerts /tmp/certs/truststore.jks
+            fi
+            keytool -import -trustcacerts -keystore /tmp/certs/truststore.jks -storepass changeit -noprompt -alias mongo-ca -file /etc/mongo-certs/ca.crt
+            
+            # 3. Phân quyền
+            chmod -R 777 /tmp/certs
+        volumeMounts:
+          - name: mongo-certs
+            mountPath: /etc/mongo-certs
+            readOnly: true
+          - name: tmp-certs
+            mountPath: /tmp/certs
+          - name: client-certs
+            mountPath: /etc/client-certs
+    cores: 1
+    memory: "512m"
+    serviceAccount: spark-operator-spark
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    volumeMounts:
+      - name: mongo-certs
+        mountPath: /etc/mongo-certs
+        readOnly: true
+      - name: client-certs
+        mountPath: /etc/client-certs
+        readOnly: true
+      - name: tmp-certs
+        mountPath: /tmp/certs
+  executor:
+    instances: 1
+    cores: 1
+    memory: "512m"
+    initContainers:
+      - name: prepare-certs
+        image: docker.io/library/spark:3.5.0
+        securityContext:     
+          runAsUser: 0
+        command: 
+          - "/bin/sh"
+          - "-c"
+          - |
+            # 1. Đóng gói Cert và Key thành định dạng PKCS12 (.p12) cho Client Auth (MẬT KHẨU LÀ changeit)
+            openssl pkcs12 -export -in /etc/client-certs/tls.crt -inkey /etc/client-certs/tls.key -out /tmp/certs/client-keystore.p12 -name mongo-client -passout pass:changeit
+            
+            # 2. Tạo TrustStore cho Server Auth (Giữ quyền truy cập Internet)
+            if [ -f "$JAVA_HOME/lib/security/cacerts" ]; then
+              cp $JAVA_HOME/lib/security/cacerts /tmp/certs/truststore.jks
+            else
+              cp /etc/ssl/certs/java/cacerts /tmp/certs/truststore.jks
+            fi
+            keytool -import -trustcacerts -keystore /tmp/certs/truststore.jks -storepass changeit -noprompt -alias mongo-ca -file /etc/mongo-certs/ca.crt
+            
+            # 3. Phân quyền
+            chmod -R 777 /tmp/certs
+        volumeMounts:
+          - name: mongo-certs
+            mountPath: /etc/mongo-certs
+          - name: tmp-certs
+            mountPath: /tmp/certs
+          - name: client-certs
+            mountPath: /etc/client-certs
+    env:
+      - name: HADOOP_USER_NAME
+        value: "root"
+    volumeMounts:
+      - name: mongo-certs
+        mountPath: /etc/mongo-certs
+        readOnly: true
+      - name: tmp-certs 
+        mountPath: /tmp/certs
+      - name: client-certs
+        mountPath: /etc/client-certs
+  volumes:
+    - name: mongo-certs
+      secret:
+        secretName: mongodb-ssl
+    - name: tmp-certs 
+      emptyDir: {}
+    - name: client-certs
+      secret:
+        secretName: spark-mongodb-client-secret
