@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-debug
+  namespace: default
+spec:
+  containers:
+    - name: kafka-debug
+      image: apache/kafka:4.3.0
+      command: ["/bin/sh", "-c", "sleep 3600"]
+      imagePullPolicy: IfNotPresent
+      volumeMounts:
+      - name: ca-cert
+        mountPath: /etc/cluster-ca/
+      - name: user-cert
+        mountPath: /etc/consumer-credentials/
+  volumes:
+  - name: user-cert
+    secret:
+      secretName: consumer-user
+  - name: ca-cert
+    secret:
+      secretName: my-cluster-cluster-ca-cert
