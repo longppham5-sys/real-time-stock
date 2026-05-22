@@ -8,7 +8,7 @@ spec:
   mode: cluster
   image: docker.io/library/spark:3.5.0
   imagePullPolicy: IfNotPresent
-  mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor-3.py
+  mainApplicationFile: hdfs://my-hadoop-hadoop-hdfs-nn:9000/user/long/scripts/spark-processor.py
   sparkVersion: "3.5.0"
   
   sparkConf:
