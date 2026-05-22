@@ -206,7 +206,9 @@ final_df = df_with_risk.withColumn(
     "rsi",
     "risk_level",
     "advice",
-    "event_time"
+    "event_time",
+    "window_start",
+    "window_end"
 )
 
 # 10. Cấu hình MongoDB
