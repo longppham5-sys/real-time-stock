@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     from_json, col, timestamp_seconds, window,
-    first, last, max, min, when, abs,
+    min_by, max_by, max, min, when, abs,
     sum as spark_sum, avg
 )
 from pyspark.sql.types import StructType, StringType, DoubleType, LongType
@@ -65,22 +65,16 @@ windowed_df = parsed_df \
         col("symbol")
     ) \
     .agg(
-        first("price").alias("open"),
+        min_by("price", "event_time").alias("open"),
         max("price").alias("high"),
         min("price").alias("low"),
-        last("price").alias("close"),
-
-        # Tổng khối lượng giao dịch trong window
+        max_by("price", "event_time").alias("close"),
         spark_sum("quantity").alias("volume"),
-
-        # Giá trung bình trong window
         avg("price").alias("avg_price"),
-
-        # VWAP = sum(price * quantity) / sum(quantity)
-        (
+        when(
+            spark_sum("quantity") != 0,
             spark_sum("price_volume") / spark_sum("quantity")
-        ).alias("vwap"),
-
+        ).otherwise(None).alias("vwap"),
         max("event_time").alias("event_time")
     )
 
