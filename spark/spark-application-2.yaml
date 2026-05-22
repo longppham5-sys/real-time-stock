@@ -52,6 +52,7 @@ spec:
           - name: client-certs
             mountPath: /etc/client-certs
     cores: 1
+    coreRequest: "500m"
     coreLimit: "500m"
     memory: "512m"
     serviceAccount: spark-operator-spark
@@ -70,6 +71,7 @@ spec:
   executor:
     instances: 1
     cores: 1
+    coreRequest: "500m"
     coreLimit: "500m"
     initContainers:
       - name: prepare-certs
