@@ -76,7 +76,9 @@ windowed_df = parsed_df \
             spark_sum("price_volume") / spark_sum("quantity")
         ).otherwise(None).alias("vwap"),
         max("event_time").alias("event_time")
-    )
+    ) \
+    .withColumn("window_start", col("window.start")) \
+    .withColumn("window_end", col("window.end"))
 
 # 6. Tính toán các chỉ báo bổ sung
 df_with_indicators = windowed_df \
