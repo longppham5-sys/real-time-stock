@@ -29,7 +29,7 @@ cluster:
   unmanaged: false
   unsafeFlags:
     tls: false
-    replsetSize: true # Change to false when using in production
+    replsetSize: false # Change to false when using in production
     mongosSize: false
     terminationGracePeriod: false
     backupIfUnhealthy: false
