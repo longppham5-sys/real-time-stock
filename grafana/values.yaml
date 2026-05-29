@@ -287,6 +287,7 @@ ingress:
   # Values can be templated
   annotations:
     kubernetes.io/ingress.class: gce
+    cert-manager.io/issuer: "letsencrypt-production"
     # kubernetes.io/tls-acme: "true"
   labels: {}
   path: /
@@ -294,7 +295,8 @@ ingress:
   # pathType is only for k8s >= 1.1=
   pathType: Prefix
 
-  hosts: []
+  hosts:
+    - grafana.longppham5.xyz
   ## Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
   extraPaths: []
   # - path: /*
@@ -311,10 +313,10 @@ ingress:
   #         name: use-annotation
 
 
-  tls: []
-  # - secretName: grafana-tls
-  #   hosts:
-  #     - grafana.longppham5.xyz
+  tls:
+  - secretName: grafana-tls
+    hosts:
+      - grafana.longppham5.xyz
 
 # -- BETA: Configure the gateway routes for the chart here.
 # More routes can be added by adding a dictionary key like the 'main' route.
