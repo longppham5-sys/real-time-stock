@@ -2,18 +2,15 @@ import websocket
 import json
 from kafka import KafkaProducer
 import time
-import os  # Thêm thư viện để đọc biến môi trường
+import os 
 
-# 1. Cấu hình Kafka (Lấy từ Environment Variables hoặc dùng default)
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'my-cluster-kafka-bootstrap.default.svc:9093')
 TOPIC_NAME = 'crypto-prices'
-
-# Đường dẫn đến các file Cert (Mount từ Secret vào Pod)
 CA_CERT_PATH = os.getenv('KAFKA_CA_CERT', '/etc/cluster-ca/ca.crt')
 USER_CERT_PATH = os.getenv('KAFKA_USER_CERT', '/etc/producer-credentials/user.crt')
 USER_KEY_PATH = os.getenv('KAFKA_USER_KEY', '/etc/producer-credentials/user.key')
 
-print("Configure mTLS between producer and kafka...")
+print("Cấu hình mTLS giữa producer và Kafka...")
 try:
     producer = KafkaProducer(
         bootstrap_servers=[KAFKA_BOOTSTRAP_SERVERS],
@@ -33,9 +30,6 @@ except Exception as e:
 def on_message(ws, message):
     try:
         data = json.loads(message)
-        
-        # Binance gửi dữ liệu trade thô
-        # s: Symbol, p: Price, q: Quantity, E: Event Time
         refined_data = {
             "symbol": data['s'],
             "price": float(data['p']),
@@ -43,9 +37,7 @@ def on_message(ws, message):
             "timestamp": data['E']
         }
         
-        # Bắn dữ liệu vào Kafka
-        # Thêm callback để kiểm tra lỗi gửi
-        producer.send(TOPIC_NAME, value=refined_data).add_errback(lambda e: print(f"Kafka Send Error: {e}"))
+        producer.send(TOPIC_NAME, value=refined_data).add_errback(lambda e: print(f"Gửi dữ liệu đến Kafka thất bại: {e}"))
         print(f"Sent: {refined_data['symbol']} - {refined_data['price']}")
         
     except Exception as e:
@@ -61,7 +53,6 @@ def on_open(ws):
     print("Đã mở kết nối tới Binance WebSocket!")
 
 if __name__ == "__main__":
-    # URL Stream giá BTC/USDT của Binance
     socket = "wss://stream.binance.com:9443/ws/btcusdt@trade"
     
     ws = websocket.WebSocketApp(
@@ -72,5 +63,4 @@ if __name__ == "__main__":
         on_close=on_close
     )
     
-    # Chạy liên tục
     ws.run_forever()

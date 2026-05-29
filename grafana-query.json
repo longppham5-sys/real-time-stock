@@ -106,3 +106,67 @@
     }
   }
 ]
+
+
+
+Panel 1: Biểu đồ Giá & Bollinger Bands 20 nến
+•	Type Panel: Time series
+•	Query (JSON):
+JSON
+[
+  { "$match": { "symbol": "BTCUSDT", "event_time": { "$exists": true } } },
+  { "$sort": { "event_time": -1 } },
+  { "$limit": 300 },
+  {
+    "$project": {
+      "_id": 0,
+      "time": "$event_time",
+      "Giá đóng cửa": "$close",
+      "BB Thượng (Upper)": "$bb_upper",
+      "BB Trung dung (Middle)": "$bb_middle",
+      "BB Hạ (Lower)": "$bb_lower"
+    }
+  },
+  { "$sort": { "time": 1 } }
+]
+Panel 2: Chỉ báo Giao cắt SMA (9 Kỳ vs 21 Kỳ) & RSI
+•	Type Panel: Time series
+•	Query (JSON):
+JSON
+[
+  { "$match": { "symbol": "BTCUSDT", "event_time": { "$exists": true } } },
+  { "$sort": { "event_time": -1 } },
+  { "$limit": 300 },
+  {
+    "$project": {
+      "_id": 0,
+      "time": "$event_time",
+      "SMA 9 (Ngắn hạn)": "$sma_9",
+      "SMA 21 (Dài hạn)": "$sma_21",
+      "Sức mạnh RSI-14": "$rsi_14"
+    }
+  },
+  { "$sort": { "time": 1 } }
+]
+(Mẹo: Bạn có thể tách RSI sang một trục Y độc lập bên phải trong phần thiết lập Overrides của Grafana để không bị lệch tỷ lệ với đường SMA).
+Panel 3: Bảng Tín hiệu & Khuyến nghị Mua/Bán Real-time
+•	Type Panel: Table
+•	Query (JSON):
+JSON
+[
+  { "$match": { "symbol": "BTCUSDT", "event_time": { "$exists": true } } },
+  { "$sort": { "event_time": -1 } },
+  { "$limit": 15 },
+  {
+    "$project": {
+      "_id": 0,
+      "Thời gian (UTC)": "$event_time",
+      "Cặp tỷ giá": "$symbol",
+      "Giá đóng": "$close",
+      "Trạng thái Bollinger": "$bb_signal",
+      "Giao cắt SMA": "$sma_crossover",
+      "Chiến lược khuyến nghị": "$advice"
+    }
+  }
+]
+

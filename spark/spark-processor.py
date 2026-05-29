@@ -12,22 +12,19 @@ spark = SparkSession.builder \
     .appName("CryptoDownsamplingProcessor") \
     .getOrCreate()
 
-# Tối ưu partition
 spark.conf.set("spark.sql.shuffle.partitions", "2")
-
-# Đọc đường dẫn Cert từ Environment Variables
 CA_CERT_PATH = "/etc/cluster-ca/ca.crt"
 USER_CERT_PATH = "/etc/consumer-credentials/user.crt"
 USER_KEY_PATH = "/etc/consumer-credentials/user.key"
 
-# 2. Định nghĩa Schema
+# 2. ĐN Schema
 schema = StructType() \
     .add("symbol", StringType()) \
     .add("price", DoubleType()) \
     .add("quantity", DoubleType()) \
     .add("timestamp", LongType())
 
-# 3. Đọc Stream từ Kafka với cấu hình mTLS
+# 3. Đọc Stream từ Kafka
 def read_file(path):
     with open(path, "r") as f:
         return f.read()
@@ -57,7 +54,7 @@ parsed_df = raw_df.selectExpr("CAST(value AS STRING)") \
     .withColumn("event_time", timestamp_seconds(col("timestamp") / 1000)) \
     .withColumn("price_volume", col("price") * col("quantity"))
 
-# 5. Windowing & Aggregation OHLC - 10s
+# 5. Windowing & Tổng hợp OHLC - 10s
 windowed_df = parsed_df \
     .withWatermark("event_time", "10 seconds") \
     .groupBy(
@@ -80,7 +77,7 @@ windowed_df = parsed_df \
     .withColumn("window_start", col("window.start")) \
     .withColumn("window_end", col("window.end"))
 
-# 6. Tính toán các chỉ báo bổ sung
+# 6. chỉ báo bổ sung
 df_with_indicators = windowed_df \
     .withColumn(
         "price_change",
