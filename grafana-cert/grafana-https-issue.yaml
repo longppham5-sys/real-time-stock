@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-production
+  namespace: default
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: phambaolong10031997@gmail.com
+    privateKeySecretRef:
+      name: grafana-production
+    solvers:
+    - http01:
+        ingress:
+          name: my-grafana
